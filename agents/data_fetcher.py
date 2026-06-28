@@ -136,6 +136,22 @@ class DataFetcherAgent:
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df = df.set_index("timestamp").sort_index()
         df = df[~df.index.duplicated(keep="first")]
+
+        # Defensive check: chunks are fetched newest-first and appended in
+        # that order, so correctness here depends entirely on sort_index()
+        # sorting by timestamp VALUE (which it does) rather than by chunk
+        # position. Assert it explicitly instead of trusting it silently —
+        # if Groww ever returns an unparseable/duplicate timestamp that
+        # slips through, this fails loudly here instead of producing a
+        # silently mis-ordered series that corrupts every indicator
+        # downstream (VWAP, EMA, RSI all assume index order == time order).
+        if not df.index.is_monotonic_increasing:
+            raise RuntimeError(
+                f"Historical data for {symbol} is not chronologically sorted after "
+                "concat+sort — this would corrupt every downstream indicator. "
+                "Aborting rather than computing on bad data."
+            )
+
         return df[["open", "high", "low", "close", "volume"]].astype(
             {"open": float, "high": float, "low": float, "close": float, "volume": int}
         )

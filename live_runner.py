@@ -4,7 +4,7 @@ the pipeline. This places NO orders; it only prints a signal for you to
 act on manually (signal-only mode).
 
 Setup:
-1. cp .env fill in GROWW_API_KEY / GROWW_API_SECRET
+1. cp .env, fill in GROWW_API_KEY / GROWW_API_SECRET
    (get these from https://groww.in/trade-api/api-keys)
 2. Run: python live_runner.py --symbol RELIANCE
 
@@ -55,6 +55,9 @@ def run_symbol(symbol: str, exchange: str = "NSE", segment: str = "CASH"):
         recent_1min_volumes=recent_1min_volumes,
         lower_circuit=lower_circuit,
         upper_circuit=upper_circuit,
+        # override_time intentionally omitted — live runs must use the
+        # real current IST time so the square-off gate in RiskManagerAgent
+        # actually protects you. Only tests/demos should override this.
     )
 
     print(f"\n{'='*60}\nSIGNAL: {symbol}\n{'='*60}")

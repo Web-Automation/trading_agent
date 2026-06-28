@@ -39,6 +39,7 @@ class IntradaySignalPipeline:
         recent_1min_volumes: pd.Series,
         lower_circuit: float,
         upper_circuit: float,
+        override_time=None,  # dt_time, for tests/demos to simulate a specific clock time
     ) -> TradeSignal:
         ltp = float(intraday_df["close"].iloc[-1])
 
@@ -68,5 +69,6 @@ class IntradaySignalPipeline:
         signal = self.executive_agent.decide(
             symbol=symbol, liquidity=liquidity, tech=tech, tape=tape, sentiment=sentiment,
             intraday_atr=intraday_atr, lower_circuit=lower_circuit, upper_circuit=upper_circuit,
+            override_time=override_time,
         )
         return signal

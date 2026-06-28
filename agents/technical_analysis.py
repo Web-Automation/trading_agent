@@ -152,13 +152,20 @@ class TechnicalAnalysisAgent:
     not primary signal generators. This avoids over-firing on RSI/MACD noise.
     """
 
+    HTF_SLOPE_LOOKBACK = 3  # hourly bars. NSE session is ~6.25hrs (9:15-15:30),
+    # so a 5-bar lookback compares the current hour against the opening
+    # hour on most days — that's "did price move since the open," not
+    # "is the trend turning now." 3 bars reacts within-session without
+    # being whipsawed by a single noisy hourly candle the way 2 would be.
+
     def htf_trend(self, hourly_df: pd.DataFrame) -> str:
         if len(hourly_df) < 21:
             return "SIDEWAYS"
         ema20 = compute_ema(hourly_df["close"], 20)
         last_close = hourly_df["close"].iloc[-1]
         last_ema = ema20.iloc[-1]
-        prev_ema = ema20.iloc[-5] if len(ema20) > 5 else ema20.iloc[0]
+        lookback = self.HTF_SLOPE_LOOKBACK
+        prev_ema = ema20.iloc[-lookback - 1] if len(ema20) > lookback else ema20.iloc[0]
         slope_up = last_ema > prev_ema
         if last_close > last_ema and slope_up:
             return "UP"

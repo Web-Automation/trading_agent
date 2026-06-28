@@ -69,6 +69,7 @@ class ExecutiveTraderAgent:
         intraday_atr: float,
         lower_circuit: float,
         upper_circuit: float,
+        override_time=None,  # dt_time, for tests/demos to simulate a specific clock time
     ) -> TradeSignal:
         rationale: list[str] = []
         blocking: list[str] = []
@@ -144,6 +145,7 @@ class ExecutiveTraderAgent:
         risk: RiskAssessment = self.risk_manager.assess(
             symbol=symbol, bias=bias, entry_price=entry, stop_loss=stop_loss,
             target_price=target, lower_circuit=lower_circuit, upper_circuit=upper_circuit,
+            override_time=override_time,
         )
 
         if risk.verdict == Verdict.BLOCKED:

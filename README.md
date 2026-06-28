@@ -1,10 +1,10 @@
 # Intraday Signal Agent (India) — Signal-Only
 
 A multi-agent pipeline that takes an NSE/BSE stock symbol and produces a
-BUY/SHORT/SKIP signal with entry, stop loss, and target for **manual**
-intraday trading decisions. It does not place orders.
+BUY/SHORT/SKIP signal with entry, stop loss, and target — for **manual**
+intraday trading decisions.
 
-**Broker: Groww API**
+**Broker: Groww API** .
 
 ## Why this is "signal-only"
 
@@ -70,11 +70,46 @@ and extend `_aggregate` to call it.
   re-approval daily per Groww's docs. If that's annoying, switch to the
   TOTP flow (`pyotp`), which Groww states has no expiry — see Setup below.
 
+## Bug fixes (post-review)
+
+A review flagged three issues. Here's what was actually wrong and what changed:
+
+1. **Historical data chunk ordering** — chunks are fetched newest-first
+   and appended to a list in that order. This does **not** cause
+   look-ahead bias: `pd.concat()` followed by `.set_index().sort_index()`
+   sorts by timestamp *value*, not by row/chunk position, so the result
+   is correctly chronological regardless of append order (verified in
+   `tests/test_data_fetcher.py`). What *was* missing: nothing explicitly
+   verified this. `fetch_historical` now asserts
+   `df.index.is_monotonic_increasing` after the sort and raises loudly
+   if it's ever false, instead of silently trusting it.
+
+2. **HTF trend lookback too laggy** — `htf_trend` compared the current
+   hourly EMA to the EMA ~4-5 bars back. On a ~6.25hr NSE session
+   (9:15-15:30), that's most of the session — the check was effectively
+   asking "did price move since the open," not "is the trend turning
+   right now." Fixed to a 3-bar lookback (`HTF_SLOPE_LOOKBACK = 3`),
+   which reacts within-session without being whipsawed by a single
+   noisy hourly candle.
+
+3. **No square-off time gate** — genuinely missing. `RiskManagerAgent`
+   now blocks all fresh entries at or after **2:45 PM IST**
+   (`SQUARE_OFF_CUTOFF`) and outside market hours (9:15 AM-3:30 PM IST),
+   using real IST via `zoneinfo` rather than the host machine's local
+   clock. This runs *before* the R:R/circuit checks — a trade with a
+   perfect risk:reward still gets blocked if there isn't enough session
+   left to safely exit before brokers' RMS auto-square-off (which
+   typically starts around 15:15-15:20 IST and can carry a penalty fee).
+   `assess()` and `pipeline.run()` accept an `override_time` parameter
+   so tests and `demo_synthetic.py` can simulate a specific clock time
+   deterministically — `live_runner.py` intentionally never passes this,
+   so live runs always check the real clock.
+
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
+cp .env 
 # fill in GROWW_API_KEY, GROWW_API_SECRET, MARKETAUX_API_TOKEN in .env
 ```
 
@@ -127,7 +162,9 @@ agents/
   risk_manager.py          — the gatekeeper, hard numeric vetoes
   executive_trader.py     — consolidation + entry/SL/target math
 tests/
-  test_risk_manager.py    — safety-critical agent gets the most test coverage
+  test_risk_manager.py      — safety-critical agent: R:R, circuit, and square-off time gate
+  test_technical_analysis.py — HTF trend lookback correctness
+  test_data_fetcher.py        — chunk concatenation ordering correctness
 demo_synthetic.py          — run the whole pipeline with fake data
 live_runner.py              — run it against real Groww API
 ```

@@ -1,17 +1,26 @@
 """
-Runnable demo using SYNTHETIC data — no Kite API keys needed.
+Runnable demo using SYNTHETIC data — no Groww API keys needed.
 This proves the pipeline logic is wired correctly before you connect
-real Kite Connect credentials. Run: python demo_synthetic.py
+real Groww credentials. Run: python demo_synthetic.py
+
+Uses a fixed override_time (11:00 AM IST) for every scenario so results
+are deterministic regardless of when you actually run this script — the
+RiskManagerAgent's square-off time gate would otherwise block every
+scenario after 2:45 PM IST and before 9:15 AM IST, which would make this
+demo's output depend on wall-clock time rather than the trade logic
+being demonstrated.
 """
 import sys
 sys.path.insert(0, ".")
 
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dt_time
 
 from core.models import MarketDepth, MarketDepthLevel
 from core.pipeline import IntradaySignalPipeline
+
+DEMO_TIME = dt_time(11, 0)  # fixed mid-session time so demo output is reproducible
 
 
 def make_synthetic_daily(days=40, start_price=2500.0, trend=0.0015, seed=42):
@@ -78,7 +87,7 @@ def make_synthetic_depth(ltp: float, bullish=True, seed=3) -> MarketDepth:
     )
 
 
-def run_scenario(name: str, trend: float, bullish_tape: bool):
+def run_scenario(name: str, trend: float, bullish_tape: bool, demo_time: dt_time = DEMO_TIME):
     print(f"\n{'='*70}\nSCENARIO: {name}\n{'='*70}")
 
     daily_df = make_synthetic_daily(days=40, start_price=2500.0, trend=trend / 20)
@@ -99,6 +108,7 @@ def run_scenario(name: str, trend: float, bullish_tape: bool):
         daily_df=daily_df, intraday_df=intraday_df, hourly_df=hourly_df,
         depth=depth, recent_1min_volumes=recent_1min_vol,
         lower_circuit=lower_circuit, upper_circuit=upper_circuit,
+        override_time=demo_time,
     )
 
     print(f"LTP: {ltp:.2f} | Circuit band: {lower_circuit:.2f} - {upper_circuit:.2f}")
@@ -122,3 +132,7 @@ if __name__ == "__main__":
     run_scenario("Strong uptrend + bullish tape -> expect BUY", trend=0.0012, bullish_tape=True)
     run_scenario("Strong downtrend + bearish tape -> expect SHORT", trend=-0.0012, bullish_tape=False)
     run_scenario("Flat/choppy -> expect NEUTRAL/BLOCKED", trend=0.00005, bullish_tape=True)
+    run_scenario(
+        "Same strong uptrend, but at 3:10 PM IST -> expect BLOCKED (square-off gate)",
+        trend=0.0012, bullish_tape=True, demo_time=dt_time(15, 10),
+    )
