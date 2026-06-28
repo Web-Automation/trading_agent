@@ -4,7 +4,7 @@ A multi-agent pipeline that takes an NSE/BSE stock symbol and produces a
 BUY/SHORT/SKIP signal with entry, stop loss, and target — for **manual**
 intraday trading decisions. It does not place orders.
 
-**Broker: Groww API** (₹499/month + GST).
+**Broker: Groww API**
 
 ## Why this is "signal-only"
 
