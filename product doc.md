@@ -284,7 +284,3 @@ A synthetic end-to-end demo (`demo_synthetic.py`) exercises the full pipeline wi
 3. **Optionally add an LLM narration layer** over Marketaux's sentiment output, strictly for human-readable explanation — never feeding back into price computation.
 
 4. **Optionally extend to a basket-scan mode** that runs the pipeline across a configurable watchlist and surfaces only APPROVED signals, rather than checking one symbol at a time.
-
----
-
-> *This document describes a decision-support tool, not financial advice. Intraday trading carries substantial risk of loss. Historical and structural patterns do not guarantee future results.*

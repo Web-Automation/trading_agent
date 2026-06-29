@@ -399,7 +399,3 @@ This is an independent, third-party service, unrelated to Groww, that continuous
 ### The Optional Connection to an Artificial Intelligence Language Model
 
 As explained in Section 4.5, this software includes an optional, not-required connection point where a language model such as Claude could be used purely to write a friendly sentence summarizing the news sentiment already calculated by Marketaux. This connection is never required for the software to function, and is never used to calculate or approve a trade.
-
----
-
-> *This document is a plain-language technical reference, not financial advice. The software it describes is a decision-support tool: it never places trades automatically, and every recommendation it produces is intended to be reviewed by a human being before any money is risked.*
